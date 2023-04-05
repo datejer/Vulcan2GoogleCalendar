@@ -135,6 +135,8 @@ export async function markBlocksInCalendar(auth: any, blocks: FullBlock[]) {
             summary: "School 👨🏻‍🎓",
             description:
               "Event automatically synced from school timetable by Vulcan2GoogleCalendar",
+            eventType: "outOfOffice",
+            visibility: "public",
           },
         },
         function (err: any, something: any) {
