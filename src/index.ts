@@ -8,30 +8,35 @@ import {
   navigatePlan,
   newPage,
 } from "./lib/scraper";
-import { parseTimetable } from "./lib/parser";
+import { getFullBlocks, parseTimetable } from "./lib/parser";
+import { authorize, markBlocksInCalendar } from "./lib/google";
 
 async function main() {
-  if (!process.env.EMAIL || !process.env.PASSWORD) {
-    throw new Error(
-      "Missing credentials EMAIL and PASSWORD in .env. Refer to .env.example."
-    );
-  }
+  authorize()
+    .then(async (auth) => {
+      if (!process.env.EMAIL || !process.env.PASSWORD) {
+        throw new Error(
+          "Missing credentials EMAIL and PASSWORD in .env. Refer to .env.example."
+        );
+      }
 
-  const { page, browser } = await newPage();
+      const { page, browser } = await newPage();
 
-  await navigateLogin(page);
-  await login(page, {
-    email: process.env.EMAIL,
-    password: process.env.PASSWORD,
-  });
-  await navigateDashboard(page);
-  await navigatePlan(page);
-  const rawTable = await getTimetable(page);
-  if (!rawTable) throw new Error("No timetable found");
-  const timetable = await parseTimetable(rawTable);
+      await navigateLogin(page);
+      await login(page, {
+        email: process.env.EMAIL,
+        password: process.env.PASSWORD,
+      });
+      await navigateDashboard(page);
+      await navigatePlan(page);
+      const rawTable = await getTimetable(page);
+      if (!rawTable) throw new Error("No timetable found");
+      const timetable = await parseTimetable(rawTable);
+      const fullTimeBlocks = getFullBlocks(timetable);
+      await markBlocksInCalendar(auth, fullTimeBlocks);
 
-  console.log(timetable);
-
-  await browser.close();
+      await browser.close();
+    })
+    .catch(console.error);
 }
 main();

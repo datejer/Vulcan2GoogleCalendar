@@ -6,6 +6,8 @@ type Lesson = {
   text: string;
 };
 
+type Timetable = { [key: string]: Lesson[] };
+
 export const parseTimetable = async (
   table: ElementHandle<HTMLTableElement>
 ) => {
@@ -62,7 +64,33 @@ export const parseTimetable = async (
     acc[dateString] = timetableByDay[index];
 
     return acc;
-  }, {} as { [key: string]: Lesson[] });
+  }, {} as Timetable);
 
   return timetable;
+};
+
+export type FullBlock = {
+  date: string;
+  from: string;
+  to: string;
+};
+
+export const getFullBlocks = (timetable: Timetable): FullBlock[] => {
+  const fullBlocks =
+    Object.keys(timetable).flatMap((key) => {
+      const lessons = timetable[key];
+
+      const firstLesson = lessons.find((lesson) => lesson.text !== "");
+      const lastLesson = lessons.reverse().find((lesson) => lesson.text !== "");
+
+      if (!firstLesson || !lastLesson) return [];
+
+      return {
+        date: key,
+        from: firstLesson.from,
+        to: lastLesson.to,
+      };
+    }) || [];
+
+  return fullBlocks;
 };
