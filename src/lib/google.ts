@@ -6,6 +6,7 @@ const { authenticate } = require("@google-cloud/local-auth");
 const { google } = require("googleapis");
 import { formatRFC3339 } from "date-fns";
 import { FullBlock } from "./parser";
+import { config } from "../config";
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
@@ -14,6 +15,8 @@ const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
 // time.
 const TOKEN_PATH = path.join(process.cwd(), "token.json");
 const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
+
+const MINUTE = 60 * 1000;
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -99,7 +102,6 @@ export async function markBlocksInCalendar(auth: any, blocks: FullBlock[]) {
 
     const { data } = await calendar.events.list({
       calendarId: "primary",
-      timeMin: new Date().toISOString(),
       q: "Vulcan2GoogleCalendar",
       singleEvents: true,
       orderBy: "startTime",
@@ -115,9 +117,16 @@ export async function markBlocksInCalendar(auth: any, blocks: FullBlock[]) {
       });
     }
 
+    const PADDING = MINUTE * config.eventPadding;
+
     blocks.map((block) => {
-      const start = formatRFC3339(new Date(block.date + "T" + block.from));
-      const end = formatRFC3339(new Date(block.date + "T" + block.to));
+      const startDate = new Date(block.date + "T" + block.from);
+      const offsetStartDate = new Date(startDate.getTime() - PADDING);
+      const start = formatRFC3339(offsetStartDate);
+
+      const endDate = new Date(block.date + "T" + block.to);
+      const offsetEndDate = new Date(endDate.getTime() + PADDING);
+      const end = formatRFC3339(offsetEndDate);
 
       calendar.events.insert(
         {
@@ -135,8 +144,9 @@ export async function markBlocksInCalendar(auth: any, blocks: FullBlock[]) {
             summary: "School 👨🏻‍🎓",
             description:
               "Event automatically synced from school timetable by Vulcan2GoogleCalendar",
-            eventType: "outOfOffice",
-            visibility: "public",
+            eventType: "outOfOffice", // read-only field :( please +1 https://issuetracker.google.com/issues/206630110?pli=1
+            visibility: config.eventVisibility || "public",
+            transparency: config.eventTransparency || "opaque",
           },
         },
         function (err: any, something: any) {

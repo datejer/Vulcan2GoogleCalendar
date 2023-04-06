@@ -1,9 +1,10 @@
 import puppeteer, { ElementHandle, Page } from "puppeteer";
 import { wait } from "./wait";
+import { config } from "../config";
 
 export const newPage = async () => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: config.headless || false,
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080 });
@@ -12,7 +13,9 @@ export const newPage = async () => {
 };
 
 export const navigateLogin = async (page: Page) => {
-  await page.goto("https://uonetplus.vulcan.net.pl/poznan/");
+  await page.goto(
+    `https://uonetplus.vulcan.net.pl/${config.vulcanSymbol || "poznan"}/`
+  );
   await page.click(".loginButton");
 
   await wait();
@@ -31,7 +34,9 @@ export const login = async (
 
 export const navigateDashboard = async (page: Page) => {
   await page.goto(
-    "https://uonetplus-uczen.vulcan.net.pl/poznan/000088/LoginEndpoint.aspx"
+    `https://uonetplus-uczen.vulcan.net.pl/${
+      config.vulcanSymbol || "poznan"
+    }/000088/LoginEndpoint.aspx`
   );
 
   await wait();
